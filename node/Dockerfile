@@ -9,6 +9,7 @@ RUN npm install
 
 COPY . .
 
+RUN npx prisma generate
 
 RUN : \
     && /bin/echo -e "sleep 20;npm run start" > ./exe \
