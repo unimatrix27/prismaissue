@@ -1,0 +1,66 @@
+version: "3.2"
+services:
+  mysql:
+    image: mysql:5.7
+    networks:
+      - backend
+      - frontend
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_USER=prismauser
+      - MYSQL_PASSWORD=prismapass
+      - MYSQL_DATABASE=prismaissue
+    container_name: prisma-mysql
+    ports:
+      - "30010:3306"
+  liquibase:
+    build: ./database
+    volumes:
+      - ./database/liquibasexml:/liquibase/changelog/
+    depends_on:
+      - mysql
+    networks:
+      - backend
+    environment:
+      - DBUSER=prismauser
+      - DBPASSWORD=prismapass
+      - DBURL=jdbc:mysql://prisma-mysql:3306/prismaissue
+      - DATABASE=prismaissue
+      - WAIT_HOSTS=prisma-mysql:3306
+      - WAIT_HOSTS_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=5
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+    container_name: prisma-liquibase
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:4.7
+    depends_on:
+      - mysql
+    networks:
+      - backend
+    ports:
+      - "30002:80"
+    environment:
+      - PMA_HOST=prisma-mysql
+      - PMA_PORT= 3306
+    volumes:
+      - /sessions
+    container_name: prisma-phpmyadmin
+  nodejs:
+    build: ./node
+    depends_on:
+      - liquibase
+      - mysql
+    networks:
+      - backend
+    environment:
+      - DATABASE_URL=mysql://prismauser:prismapass@prisma-mysql:3306/prismaissue
+      - MYSQL_HOST=prisma-mysql
+      - MYSQL_USER=prismauser
+      - MYSQL_PASS=prismapass
+      - MYSQL_DB=prismaissue
+    container_name: prisma-nodejs
+    ports:
+      - "5000:5000"
+networks:
+  frontend:
+  backend:
